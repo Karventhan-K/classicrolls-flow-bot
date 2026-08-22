@@ -61,9 +61,32 @@ export const flowData = {
       subtitle: "Browse pictures and details of their offerings."
     },
     bodyText: "Explore our menu and order your favourite food from Classic Rolls & Wok 🍔🍟🥤",
-    footerText: "Fresh • Delicious • Made for You 🌶️",
+    footerText: "Fresh • Delicious • Made for You ❤️",
     buttonText: "View catalogue",
     isCatalog: true
+  },
+  membership: {
+    id: "membership",
+    bodyText: "🎁 *Exclusive VIP Offers!*\nUnlock amazing discounts and freebies. Select an offer below to activate it for your next order.",
+    buttonText: "View Offers",
+    sections: [
+      {
+        title: "Available Offers",
+        rows: [
+          { id: "VIP_10_PERCENT", label: "VIP 10% OFF", description: "Always active! No min spend.", nextFlow: "offer_applied" },
+          { id: "VIP_FRIES_MONTHLY", label: "Monthly Free Fries", description: "Min spend ₹299", nextFlow: "offer_applied" },
+          { id: "VIP_BIRTHDAY_100", label: "Birthday ₹100 OFF", description: "Min spend ₹499 (Birthday Month)", nextFlow: "offer_applied" },
+          { id: "VIP_BIRTHDAY_200", label: "Birthday ₹200 OFF", description: "Min spend ₹899 (Birthday Month)", nextFlow: "offer_applied" }
+        ]
+      }
+    ]
+  },
+  offer_applied: {
+    id: "offer_applied",
+    bodyText: "✅ *Offer Activated!*\n\nYour selected offer will be automatically applied at checkout for eligible items.\n\nWhat would you like to do next?",
+    buttons: [
+      { id: "order_food", label: "🍔 Order Food", nextFlow: "order_food_list" }
+    ]
   }
 };
 
