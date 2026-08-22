@@ -18,7 +18,41 @@ export default function ChatInterface() {
   // Initialize chat
   useEffect(() => {
     if (!initialized.current) {
-        addBotMessage(flowData.mainMenu, "list");
+        const VIP_LANDING_TEXT = `Hi there! 👋😆
+Here are your exclusive VIP offers to make your day special:
+
+🎟️ *Welcome Vouchers*
+· ₹100 OFF × 5 vouchers
+· Minimum order: ₹499
+
+🍟 *Monthly Free Fries*
+· 1 free fries every month
+· Minimum order: ₹299
+
+🎂 *Birthday Month Special*
+· ₹100 OFF on orders ₹499+
+· ₹200 OFF on orders ₹899+
+· Available during your birthday month 🎂
+
+💰 *VIP 10% OFF*
+· Always active! No min spend.`;
+
+        setMessages([
+          { 
+            id: 1, 
+            sender: 'bot', 
+            text: VIP_LANDING_TEXT, 
+            type: "text", 
+            timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+          },
+          { 
+            id: 2, 
+            sender: 'bot', 
+            item: flowData.mainMenu, 
+            type: "list", 
+            timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+          }
+        ]);
         initialized.current = true;
     }
   }, []);
@@ -47,10 +81,71 @@ export default function ChatInterface() {
     
     if (option.actionType === 'add_to_cart' && option.product) {
       addToCart(option.product);
+      
+      const price = option.product.price;
+      let eligibleText = "";
+      if (price >= 299) {
+          eligibleText = `🎉 *Great choice!*\nSince your order is over ₹299 and this is your first order this month, you have unlocked your **Monthly Free Fries**! 🍟`;
+      } else {
+          eligibleText = `🎉 *Great choice!*\nYou are only ₹${299 - price} away from unlocking your **Monthly Free Fries**! 🍟`;
+      }
+
+      setTimeout(() => {
+        setMessages(prev => [...prev, { 
+          id: Date.now() + 1, 
+          sender: 'bot', 
+          text: eligibleText, 
+          type: "text", 
+          timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+        }]);
+      }, 400);
     }
     
     // Simulate delay
     setTimeout(() => {
+      if (option.actionType === 'open_cart' || option.actionType === 'buy_now') {
+         let currentCart = cart;
+         if (option.actionType === 'buy_now' && option.product) {
+            addToCart(option.product);
+            currentCart = [...cart, { ...option.product, quantity: 1 }];
+            
+            const price = option.product.price;
+            let eligibleText = "";
+            if (price >= 299) {
+                eligibleText = `🎉 *Great choice!*\nSince your order is over ₹299 and this is your first order this month, you have unlocked your **Monthly Free Fries**! 🍟`;
+            } else {
+                eligibleText = `🎉 *Great choice!*\nYou are only ₹${299 - price} away from unlocking your **Monthly Free Fries**! 🍟`;
+            }
+            
+            setMessages(prev => [...prev, { 
+              id: Date.now() + 1, 
+              sender: 'bot', 
+              text: eligibleText, 
+              type: "text", 
+              timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+            }]);
+         }
+         
+         if (currentCart.length > 0) {
+            const orderId = `ORD-Nugg-0001-NV-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
+            let itemsText = currentCart.map(item => `· ${item.name} ×${item.quantity} — INR ${(item.price * item.quantity).toFixed(2)}`).join('\n');
+            
+            const cartTotal = currentCart.reduce((total, item) => total + (item.price * item.quantity), 0);
+            const discount = (cartTotal * 0.1).toFixed(2);
+            
+            let receiptText = `📦 *Order ID:* ${orderId}\n\n🍔 *Products:*\n${itemsText}\n\n🎁 *VIP Offer Applied!*\n🏷️ *Offer:* VIP Member 10% OFF\n💰 *Original Amount:* INR ${cartTotal.toFixed(2)}\n🎉 *You Save:* INR ${discount}`;
+            
+            if (option.actionType === 'buy_now') {
+                const payable = (cartTotal - discount).toFixed(2);
+                receiptText += `\n\n💳 *Payable Amount:* INR ${payable}\n\n💳 *Complete your payment using the link below:*\n\n🔗 https://rzp.io/rzp/e9eX414V\n\nOnce the payment is completed, your order will be processed. ✅\n\nThank you for your order! ❤️`;
+            }
+
+            setTimeout(() => {
+              setMessages(prev => [...prev, { id: Date.now() + 2, sender: 'bot', text: receiptText, type: "text", timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
+            }, option.actionType === 'buy_now' ? 600 : 200);
+         }
+         return;
+      }
     if (option.actionType === 'buy_now' && option.product) {
       const orderId = `ORD-Burg-0005-V-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
       const p = option.product;

@@ -18,7 +18,13 @@ export default function ChatInterface() {
   // Initialize chat
   useEffect(() => {
     if (!initialized.current) {
-        addBotMessage(flowData.mainMenu, "list");
+        setMessages([{
+            id: 1,
+            sender: 'bot',
+            item: flowData.membership,
+            type: "list",
+            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }]);
         initialized.current = true;
     }
   }, []);
