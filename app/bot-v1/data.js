@@ -95,7 +95,8 @@ export const cart_updated_flow = {
   bodyText: "Item added to cart! What would you like to do next?",
   buttons: [
     { id: "view_cart", label: "🛒 View Orders", actionType: 'open_cart', nextFlow: null },
-    { id: "continue", label: "🛍️ Continue Shopping", nextFlow: "order_food_list" }
+    { id: "continue", label: "🛍️ Continue Shopping", nextFlow: "order_food_list" },
+    { id: "proceed_order", label: "⚡ Proceed to Order", actionType: 'buy_now', product: null, nextFlow: null }
   ]
 };
 flowData["cart_updated"] = cart_updated_flow;

@@ -18,7 +18,17 @@ export default function ChatInterface() {
   // Initialize chat
   useEffect(() => {
     if (!initialized.current) {
-        const VIP_LANDING_TEXT = `Hi there! 👋😆
+        const storedMessages = localStorage.getItem('bot_v1_messages');
+        const storedCart = localStorage.getItem('bot_v1_cart');
+        
+        if (storedCart) {
+            setCart(JSON.parse(storedCart));
+        }
+
+        if (storedMessages) {
+            setMessages(JSON.parse(storedMessages));
+        } else {
+            const VIP_LANDING_TEXT = `Hi there! 👋😆
 Here are your exclusive VIP offers to make your day special:
 
 🎟️ *Welcome Vouchers*
@@ -37,29 +47,39 @@ Here are your exclusive VIP offers to make your day special:
 💰 *VIP 10% OFF*
 · Always active! No min spend.`;
 
-        setMessages([
-          { 
-            id: 1, 
-            sender: 'bot', 
-            text: VIP_LANDING_TEXT, 
-            type: "text", 
-            timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-          },
-          { 
-            id: 2, 
-            sender: 'bot', 
-            item: flowData.mainMenu, 
-            type: "list", 
-            timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-          }
-        ]);
+            setMessages([
+              { 
+                id: 1, 
+                sender: 'bot', 
+                text: VIP_LANDING_TEXT, 
+                type: "text", 
+                timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+              },
+              { 
+                id: 2, 
+                sender: 'bot', 
+                item: flowData.mainMenu, 
+                type: "list", 
+                timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+              }
+            ]);
+        }
         initialized.current = true;
     }
   }, []);
 
   useEffect(() => {
+    if (initialized.current && messages.length > 0) {
+        localStorage.setItem('bot_v1_messages', JSON.stringify(messages));
+    }
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (initialized.current) {
+        localStorage.setItem('bot_v1_cart', JSON.stringify(cart));
+    }
+  }, [cart]);
 
   const addBotMessage = (flowItem, type = "list") => {
     setMessages(prev => [...prev, { 
@@ -82,23 +102,19 @@ Here are your exclusive VIP offers to make your day special:
     if (option.actionType === 'add_to_cart' && option.product) {
       addToCart(option.product);
       
-      const price = option.product.price;
-      let eligibleText = "";
-      if (price >= 299) {
-          eligibleText = `🎉 *Great choice!*\nSince your order is over ₹299 and this is your first order this month, you have unlocked your **Monthly Free Fries**! 🍟`;
-      } else {
-          eligibleText = `🎉 *Great choice!*\nYou are only ₹${299 - price} away from unlocking your **Monthly Free Fries**! 🍟`;
+      const newTotal = cartTotal + option.product.price;
+      if (newTotal >= 299) {
+          const eligibleText = `🎉 *Great choice!*\nSince your order is over ₹299 and this is your first order this month, you have unlocked your **Monthly Free Fries**! 🍟`;
+          setTimeout(() => {
+            setMessages(prev => [...prev, { 
+              id: Date.now() + 1, 
+              sender: 'bot', 
+              text: eligibleText, 
+              type: "text", 
+              timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+            }]);
+          }, 400);
       }
-
-      setTimeout(() => {
-        setMessages(prev => [...prev, { 
-          id: Date.now() + 1, 
-          sender: 'bot', 
-          text: eligibleText, 
-          type: "text", 
-          timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-        }]);
-      }, 400);
     }
     
     // Simulate delay
@@ -109,21 +125,17 @@ Here are your exclusive VIP offers to make your day special:
             addToCart(option.product);
             currentCart = [...cart, { ...option.product, quantity: 1 }];
             
-            const price = option.product.price;
-            let eligibleText = "";
-            if (price >= 299) {
-                eligibleText = `🎉 *Great choice!*\nSince your order is over ₹299 and this is your first order this month, you have unlocked your **Monthly Free Fries**! 🍟`;
-            } else {
-                eligibleText = `🎉 *Great choice!*\nYou are only ₹${299 - price} away from unlocking your **Monthly Free Fries**! 🍟`;
+            const newTotal = cartTotal + option.product.price;
+            if (newTotal >= 299) {
+                const eligibleText = `🎉 *Great choice!*\nSince your order is over ₹299 and this is your first order this month, you have unlocked your **Monthly Free Fries**! 🍟`;
+                setMessages(prev => [...prev, { 
+                  id: Date.now() + 1, 
+                  sender: 'bot', 
+                  text: eligibleText, 
+                  type: "text", 
+                  timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
+                }]);
             }
-            
-            setMessages(prev => [...prev, { 
-              id: Date.now() + 1, 
-              sender: 'bot', 
-              text: eligibleText, 
-              type: "text", 
-              timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) 
-            }]);
          }
          
          if (currentCart.length > 0) {
@@ -131,9 +143,34 @@ Here are your exclusive VIP offers to make your day special:
             let itemsText = currentCart.map(item => `· ${item.name} ×${item.quantity} — INR ${(item.price * item.quantity).toFixed(2)}`).join('\n');
             
             const cartTotal = currentCart.reduce((total, item) => total + (item.price * item.quantity), 0);
-            const discount = (cartTotal * 0.1).toFixed(2);
             
-            let receiptText = `📦 *Order ID:* ${orderId}\n\n🍔 *Products:*\n${itemsText}\n\n🎁 *VIP Offer Applied!*\n🏷️ *Offer:* VIP Member 10% OFF\n💰 *Original Amount:* INR ${cartTotal.toFixed(2)}\n🎉 *You Save:* INR ${discount}`;
+            let discount = 0;
+            let offerName = "";
+            let offerIcon = "";
+
+            if (cartTotal >= 499) {
+                discount = 100;
+                offerName = "Welcome Voucher (₹100 OFF)";
+                offerIcon = "🎟️";
+            } else if (cartTotal >= 299) {
+                discount = 0;
+                offerName = "Monthly Free Fries";
+                offerIcon = "🍟";
+            } else {
+                discount = cartTotal * 0.1;
+                offerName = "VIP Member 10% OFF";
+                offerIcon = "💰";
+            }
+            
+            let receiptText = `📦 *Order ID:* ${orderId}\n\n🍔 *Products:*\n${itemsText}`;
+            
+            receiptText += `\n\n🎁 *VIP Offer Applied!*\n${offerIcon} *Offer:* ${offerName}\n💰 *Original Amount:* INR ${cartTotal.toFixed(2)}`;
+            if (discount > 0) {
+                receiptText += `\n🎉 *You Save:* INR ${discount.toFixed(2)}`;
+            } else if (offerName === "Monthly Free Fries") {
+                receiptText += `\n🎉 *You Save:* INR 119.00 (Free Item)`;
+                receiptText += `\n🍟 *Added:* 1x Classic Fries (Free)`;
+            }
             
             if (option.actionType === 'buy_now') {
                 const payable = (cartTotal - discount).toFixed(2);
@@ -146,37 +183,6 @@ Here are your exclusive VIP offers to make your day special:
          }
          return;
       }
-    if (option.actionType === 'buy_now' && option.product) {
-      const orderId = `ORD-Burg-0005-V-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-      const p = option.product;
-      const originalAmount = p.price.toFixed(2);
-      const discount = (p.price * 0.1).toFixed(2);
-      const payableAmount = (p.price - discount).toFixed(2);
-      
-      const receiptText = `🛍️ *Order Created Successfully!*\n\nHi Karventhan😆👋\n\n📦 *Order ID:* ${orderId}\n\n🍔 *Products:*\n· ${p.name} ×1 — INR ${originalAmount}\n\n🎁 *VIP Offer Applied!*\n🏷️ *Offer:* VIP Member 10% OFF\n💰 *Original Amount:* INR ${originalAmount}\n🎉 *You Save:* INR ${discount}\n\n💳 *Payable Amount:* INR ${payableAmount}\n\n💳 *Complete your payment using the link below:*\n\n🔗 https://rzp.io/rzp/e9eX414V\n\nOnce the payment is completed, your order will be processed. ✅\n\nThank you for your order! ❤️`;
-
-      setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: receiptText, type: "text", timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
-      }, 800);
-      return;
-    }
-
-    if (option.actionType === 'open_cart') {
-      if (cart.length === 0) return;
-      
-      const orderId = `ORD-Nugg-0001-NV-${Math.floor(1000000000 + Math.random() * 9000000000)}`;
-      let itemsText = cart.map(item => `· ${item.name} ×${item.quantity} — INR ${(item.price * item.quantity).toFixed(2)}`).join('\n');
-      
-      const cartTotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-      const discount = (cartTotal * 0.1).toFixed(2);
-      
-      const receiptText = `📦 *Order ID:* ${orderId}\n\n🍔 *Products:*\n${itemsText}\n\n🎁 *VIP Offer Applied!*\n🏷️ *Offer:* VIP Member 10% OFF\n💰 *Original Amount:* INR ${cartTotal.toFixed(2)}\n🎉 *You Save:* INR ${discount}`;
-
-      setTimeout(() => {
-        setMessages(prev => [...prev, { id: Date.now(), sender: 'bot', text: receiptText, type: "text", timestamp: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) }]);
-      }, 500);
-      return;
-    }
 
       const nextFlow = option.nextFlow ? flowData[option.nextFlow] : null;
       if (nextFlow) {
@@ -269,7 +275,17 @@ Here are your exclusive VIP offers to make your day special:
           <h1 className="font-medium text-[17px] leading-tight truncate text-[#111b21] mb-0.5">+91 83173 53699</h1>
           <p className="text-[13px] text-[#54656f] leading-tight truncate">Classic Rolls and Wok</p>
         </div>
-        <div className="flex gap-4 text-[#54656f] ml-2 shrink-0">
+        <div className="flex gap-4 text-[#54656f] ml-2 shrink-0 items-center">
+            <button 
+               onClick={() => {
+                   localStorage.removeItem('bot_v1_messages');
+                   localStorage.removeItem('bot_v1_cart');
+                   window.location.reload();
+               }}
+               className="text-[11px] font-semibold bg-[#008069] text-white px-2 py-1 rounded shadow-sm hover:bg-[#006b58]"
+            >
+               Clear Chat
+            </button>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M20 6h-4V4c0-1.11-.89-2-2-2h-4c-1.11 0-2 .89-2 2v2H4c-1.11 0-1.99.89-1.99 2L2 19c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-6 0h-4V4h4v2z"></path></svg>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M21 16.65v2.24c0 .62-.53 1.11-1.15 1.11C10.05 20 4 13.95 4 4.15 4 3.53 4.49 3 5.11 3h2.24c.54 0 .99.41 1.09.95.14.77.36 1.51.64 2.21.09.23.03.49-.16.68l-1.57 1.57c1.78 3.51 4.7 6.43 8.21 8.21l1.57-1.57c.19-.19.45-.25.68-.16.7.28 1.44.5 2.21.64.54.1.95.55.95 1.09z"></path></svg>
             <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path></svg>
